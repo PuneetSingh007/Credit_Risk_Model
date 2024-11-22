@@ -1,4 +1,3 @@
-
 # Import necessary libraries
 import numpy as np
 import pandas as pd
@@ -16,8 +15,8 @@ import os
 
 
 # Load the dataset
-a1 = pd.read_excel("C:\Users\punee\OneDrive\Desktop\CRM\case_study1.xlsx")
-a2 = pd.read_excel("C:\Users\punee\OneDrive\Desktop\CRM\case_study2.xlsx")
+a1 = pd.read_excel("C:\\xxx\\Desktop\\CampusX_10_Apr\\Credit_risk_excel_files\\case_study1.xlsx")
+a2 = pd.read_excel("C:\\xxx\\Desktop\\CampusX_10_Apr\\Credit_risk_excel_files\\case_study2.xlsx")
 
 
 
@@ -88,6 +87,8 @@ for i in ['MARITALSTATUS', 'EDUCATION', 'GENDER', 'last_prod_enq2', 'first_prod_
     print(i, '---', pval)
 
 
+# Since all the categorical features have pval <=0.05, we will accept all
+
 
 
 
@@ -156,6 +157,207 @@ for i in columns_to_be_kept:
 
 
 
+# feature selection is done for cat and num features
 
+
+
+
+# listing all the final features
+features = columns_to_be_kept_numerical + ['MARITALSTATUS', 'EDUCATION', 'GENDER', 'last_prod_enq2', 'first_prod_enq2']
+df = df[features + ['Approved_Flag']]
+
+
+
+
+
+
+# Label encoding for the categorical features
+['MARITALSTATUS', 'EDUCATION', 'GENDER' , 'last_prod_enq2' ,'first_prod_enq2']
+
+
+
+df['MARITALSTATUS'].unique()    
+df['EDUCATION'].unique()
+df['GENDER'].unique()
+df['last_prod_enq2'].unique()
+df['first_prod_enq2'].unique()
+
+
+
+# Ordinal feature -- EDUCATION
+# SSC            : 1
+# 12TH           : 2
+# GRADUATE       : 3
+# UNDER GRADUATE : 3
+# POST-GRADUATE  : 4
+# OTHERS         : 1
+# PROFESSIONAL   : 3
+
+
+# Others has to be verified by the business end user 
+
+
+
+
+df.loc[df['EDUCATION'] == 'SSC',['EDUCATION']]              = 1
+df.loc[df['EDUCATION'] == '12TH',['EDUCATION']]             = 2
+df.loc[df['EDUCATION'] == 'GRADUATE',['EDUCATION']]         = 3
+df.loc[df['EDUCATION'] == 'UNDER GRADUATE',['EDUCATION']]   = 3
+df.loc[df['EDUCATION'] == 'POST-GRADUATE',['EDUCATION']]    = 4
+df.loc[df['EDUCATION'] == 'OTHERS',['EDUCATION']]           = 1
+df.loc[df['EDUCATION'] == 'PROFESSIONAL',['EDUCATION']]     = 3
+
+
+
+
+df['EDUCATION'].value_counts()
+df['EDUCATION'] = df['EDUCATION'].astype(int)
+df.info()
+
+
+
+df_encoded = pd.get_dummies(df, columns=['MARITALSTATUS','GENDER', 'last_prod_enq2' ,'first_prod_enq2'])
+
+
+
+df_encoded.info()
+k = df_encoded.describe()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Machine Learing model fitting
+
+# Data processing
+
+# 1. Random Forest
+
+y = df_encoded['Approved_Flag']
+x = df_encoded. drop ( ['Approved_Flag'], axis = 1 )
+
+
+
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+
+
+
+
+rf_classifier = RandomForestClassifier(n_estimators = 200, random_state=42)
+
+
+
+
+
+rf_classifier.fit(x_train, y_train)
+
+
+
+y_pred = rf_classifier.predict(x_test)
+
+
+
+
+
+accuracy = accuracy_score(y_test, y_pred)
+print ()
+print(f'Accuracy: {accuracy}')
+print ()
+precision, recall, f1_score, _ = precision_recall_fscore_support(y_test, y_pred)
+
+
+for i, v in enumerate(['p1', 'p2', 'p3', 'p4']):
+    print(f"Class {v}:")
+    print(f"Precision: {precision[i]}")
+    print(f"Recall: {recall[i]}")
+    print(f"F1 Score: {f1_score[i]}")
+    print()
+    
+
+
+
+
+
+# 2. xgboost
+
+import xgboost as xgb
+from sklearn.preprocessing import LabelEncoder
+
+xgb_classifier = xgb.XGBClassifier(objective='multi:softmax',  num_class=4)
+
+
+
+y = df_encoded['Approved_Flag']
+x = df_encoded. drop ( ['Approved_Flag'], axis = 1 )
+
+
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(y)
+
+
+x_train, x_test, y_train, y_test = train_test_split(x, y_encoded, test_size=0.2, random_state=42)
+
+
+
+
+xgb_classifier.fit(x_train, y_train)
+y_pred = xgb_classifier.predict(x_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print ()
+print(f'Accuracy: {accuracy:.2f}')
+print ()
+
+precision, recall, f1_score, _ = precision_recall_fscore_support(y_test, y_pred)
+
+for i, v in enumerate(['p1', 'p2', 'p3', 'p4']):
+    print(f"Class {v}:")
+    print(f"Precision: {precision[i]}")
+    print(f"Recall: {recall[i]}")
+    print(f"F1 Score: {f1_score[i]}")
+    print()
+
+
+
+
+
+# 3. Decision Tree
+from sklearn.tree import DecisionTreeClassifier
+
+
+y = df_encoded['Approved_Flag']
+x = df_encoded. drop ( ['Approved_Flag'], axis = 1 )
+
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
+
+
+dt_model = DecisionTreeClassifier(max_depth=20, min_samples_split=10)
+dt_model.fit(x_train, y_train)
+y_pred = dt_model.predict(x_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+print ()
+print(f"Accuracy: {accuracy:.2f}")
+print ()
+
+precision, recall, f1_score, _ = precision_recall_fscore_support(y_test, y_pred)
+
+for i, v in enumerate(['p1', 'p2', 'p3', 'p4']):
+    print(f"Class {v}:")
+    print(f"Precision: {precision[i]}")
+    print(f"Recall: {recall[i]}")
+    print(f"F1 Score: {f1_score[i]}")
+    print()
 
 
